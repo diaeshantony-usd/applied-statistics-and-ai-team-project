@@ -15,6 +15,3 @@ Thumbs.db
 venv/
 env/
 .env
-
-# Large raw dataset cached locally
-data/raw/credit_risk_dataset.csv
