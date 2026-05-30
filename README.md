@@ -29,7 +29,8 @@ To keep the collaborative workspace organized and ensure seamless data sharing w
    * **`data/raw/`**: Contains the raw, un-preprocessed Credit Risk Modeling dataset.
    * **`data/processed/`**: Contains the cleaned and processed dataset (`credit_risk_cleaned.csv`) after missing-value median imputation and IQR outlier filtering.
 2. **`01_Data_Prep_EDA/`**: Data Preparation & Exploratory Data Analysis.
-   * **`A_Data_Prep_and_EDA.ipynb`**: Handles data acquisition, median missing-value imputation, IQR outlier filtering, natural log-transformations, visual distributions, Shapiro-Wilk Gaussianity testing, and Central Limit Theorem (CLT) simulations.
+   * **`A_Data_Prep_and_EDA.ipynb`**: Jupyter Notebook containing the full implementation of **Introduction (Context, Goals, & Hypotheses)**, **Data Preparation (Median Imputation, Outlier Filtering)**, and **Exploratory Data Analysis (EDA)** (Log-transforms, gridspec subplots, Shapiro-Wilk testing, and Central Limit Theorem simulations).
+   * **`A_Data_Prep_and_EDA.pdf`**: Compiled PDF report of the complete Data Preparation & EDA subsystem, including all printed statistical outputs and visual figures.
 3. **`02_Model_Selection/`**: Inferential Statistics & Bayesian Network Modeling.
 4. **`03_Model_Analysis_Diagnostics/`**: Predictive Modeling & Diagnostic Validation.
 5. **`04_Master_Pipeline/`**: Final Joint Consolidation.
