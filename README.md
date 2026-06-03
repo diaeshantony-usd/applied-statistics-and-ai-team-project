@@ -1,4 +1,4 @@
-# Empirical Analysis of Credit Risk: Evaluating Borrower Default Probability and Interest Rate Determinants in Consumer Lending
+# Predicting the Unpredictable: probability in Consumer Credit Markets
 
 This repository is the collaborative workspace for the Team project for Applied statistics & AI. We utilize the Credit Risk Modeling dataset to evaluate default risk and interest rate structures.
 
