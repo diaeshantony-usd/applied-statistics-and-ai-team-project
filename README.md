@@ -31,7 +31,9 @@ To keep the collaborative workspace organized and ensure seamless data sharing w
 2. **`01_Data_Prep_EDA/`**: Data Preparation & Exploratory Data Analysis.
    * **`A_Data_Prep_and_EDA.ipynb`**: Jupyter Notebook containing the full implementation of **Introduction (Context, Goals, & Hypotheses)**, **Data Preparation (Median Imputation, Outlier Filtering)**, and **Exploratory Data Analysis (EDA)** (Log-transforms, gridspec subplots, Shapiro-Wilk testing, and Central Limit Theorem simulations).
    * **`A_Data_Prep_and_EDA.pdf`**: Compiled PDF report of the complete Data Preparation & EDA subsystem, including all printed statistical outputs and visual figures.
-3. **`02_Model_Selection/`**: Inferential Statistics & Bayesian Network Modeling.
+3. **`02_Model_Selection/`**: Feature engineering, preprocessing, machine learning model selection and Inference
+   * **`B_Feature_Engineering_Preprocessing_and_ML.ipynb`**: Jupyter Notebook for feature engineering, preprocessing, and machine learning workflows.
+   * **`B_Feature_Engineering_Preprocessing_and_ML.pdf`**: Compiled PDF report of the feature engineering, preprocessing, model selection, and inference workflow.
 4. **`03_Model_Analysis_Diagnostics/`**: Predictive Modeling & Diagnostic Validation.
 5. **`04_Master_Pipeline/`**: Final Joint Consolidation.
 
