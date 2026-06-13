@@ -1,0 +1,11 @@
+Feature,VIF
+const,99.36773560053325
+loan_amnt,5.495690687640608
+loan_percent_income,5.168144643651389
+person_income,3.6454449891899348
+person_age,3.351820219142473
+cb_person_cred_hist_length,3.3036384826237035
+loan_grade_enc,1.4520031632948538
+cb_person_default_enc,1.4055161615896603
+home_ownership_enc,1.1200629959837327
+person_emp_length,1.0845517913677325
