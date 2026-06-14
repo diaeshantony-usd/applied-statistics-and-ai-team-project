@@ -40,7 +40,9 @@ To keep the collaborative workspace organized and ensure seamless data sharing w
    * **`Credit_Risk_Model_Selection_Report.docx`**: Detailed Word report covering feature engineering, multicollinearity, train/test split, Bayesian Network reasoning, classification, regression, saved models, and applicant inference.
    * **Model artifacts**: Notebook B2 saves trained models under `data/models/classification/`, `data/models/regression/`, and `data/models/bayesian_network/`.
 4. **`03_Model_Analysis_Diagnostics/`**: Predictive Modeling & Diagnostic Validation.
-5. **`04_Master_Pipeline/`**: Final Joint Consolidation.
+5. **`04_Master_Pipeline/`**: Final integrated project notebook and master workflow.
+   * **`Final_Credit_Risk_End_to_End_Analysis.ipynb`**: End-to-end notebook that combines data preparation, EDA, feature engineering, statistical testing, Bayesian reasoning, classification, regression, diagnostics, validation, model comparison, and applicant-level inference into one complete project workflow.
+   * **`Final_Credit_Risk_End_to_End_Analysis.pdf`**: Compiled PDF version of the final end-to-end credit risk analysis notebook.
 
 ---
 
