@@ -18,3 +18,4 @@ env/
 
 # CatBoost training artifacts
 catboost_info/
+
