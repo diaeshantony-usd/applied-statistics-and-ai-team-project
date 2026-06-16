@@ -76,6 +76,28 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'eda_clt_simulation.png', dpi=150)
     plt.close()
 
+    # 4. Categorical default rates by Home Ownership & Intent
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
+    home_risk = df.groupby('person_home_ownership')['loan_status'].mean() * 100
+    home_risk.plot(kind='bar', ax=axes[0], color=PRIMARY_BLUE, edgecolor='black', rot=0)
+    axes[0].set_title('Default Rate by Home Ownership', fontsize=11, fontweight='bold', color=PRIMARY_BLUE)
+    axes[0].set_ylabel('Default Rate (%)')
+    axes[0].set_xlabel('Home Ownership')
+    axes[0].grid(False)
+    
+    intent_cols = [c for c in df.columns if 'loan_intent_' in c]
+    intent_names = [c.replace('loan_intent_', '') for c in intent_cols]
+    intent_risk = [df[df[c] == 1]['loan_status'].mean() * 100 for c in intent_cols]
+    axes[1].bar(intent_names, intent_risk, color=GOLD_ACCENT, edgecolor='black')
+    axes[1].set_title('Default Rate by Loan Intent', fontsize=11, fontweight='bold', color=GOLD_ACCENT)
+    axes[1].set_ylabel('Default Rate (%)')
+    axes[1].set_xlabel('Loan Intent')
+    axes[1].set_xticklabels(intent_names, rotation=30, ha='right')
+    axes[1].grid(False)
+    plt.tight_layout()
+    plt.savefig(plot_dir + 'eda_categorical_risk.png', dpi=150)
+    plt.close()
+
     # Generate synthetic prediction outputs aligned with CatBoost performance (ROC-AUC=0.9429, PR-AUC=0.9003)
     np.random.seed(42)
     n_samples = 5914
@@ -84,7 +106,7 @@ def generate_all_plots():
     y_prob_mock[y_test_mock == 1] = np.random.beta(7.8, 1.2, size=sum(y_test_mock == 1))
     y_prob_mock[y_test_mock == 0] = np.random.beta(1.1, 7.8, size=sum(y_test_mock == 0))
     
-    # 4. ROC & PR curves
+    # 5. ROC & PR curves
     from sklearn.metrics import roc_curve, precision_recall_curve, auc
     fpr, tpr, _ = roc_curve(y_test_mock, y_prob_mock)
     roc_auc = auc(fpr, tpr)
@@ -110,7 +132,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_roc_pr.png', dpi=150)
     plt.close()
 
-    # 5. Calibration Reliability Curve
+    # 6. Calibration Reliability Curve
     from sklearn.calibration import calibration_curve
     prob_true, prob_pred = calibration_curve(y_test_mock, y_prob_mock, n_bins=10)
     plt.figure(figsize=(7, 4.8))
@@ -125,7 +147,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_calibration.png', dpi=150)
     plt.close()
 
-    # 6. Confusion Matrices (0.24 vs 0.50 Thresholds)
+    # 7. Confusion Matrices (0.24 vs 0.50 Thresholds)
     cm_24 = np.array([[4430, 157], [286, 1041]])
     cm_50 = np.array([[4578, 9], [359, 968]])
     
@@ -147,7 +169,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_confusion_matrices.png', dpi=150)
     plt.close()
 
-    # 7. Classification Grade Segment Performance
+    # 8. Classification Grade Segment Performance
     grades = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
     accuracy = [96.41, 95.80, 89.70, 91.22, 91.67, 93.75, 100.00]
     default_rate = [10.20, 18.50, 20.86, 42.10, 68.30, 75.00, 83.33]
@@ -179,7 +201,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_grade_performance.png', dpi=150)
     plt.close()
 
-    # 8. Bayesian DAG Mapping
+    # 9. Bayesian DAG Mapping
     plt.figure(figsize=(7, 4.8))
     G = nx.DiGraph()
     G.add_edges_from([
@@ -202,7 +224,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_bayesian_dag.png', dpi=150)
     plt.close()
 
-    # 9. OLS Regression Diagnostics for Interest Rate
+    # 10. OLS Regression Diagnostics for Interest Rate
     np.random.seed(42)
     fitted = np.random.uniform(7.0, 18.0, 1500)
     res = np.random.normal(0, 1.8 + 0.1*(fitted - 10)**2, 1500)
@@ -242,7 +264,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'model_regression_diagnostics.png', dpi=150)
     plt.close()
 
-    # 10. Classification SHAP values
+    # 11. Classification SHAP values
     features_cls = [
         'income_to_loan_ratio', 'person_home_ownership_RENT', 'loan_percent_income',
         'person_home_ownership_OWN', 'loan_grade_numeric', 'log_person_income',
@@ -259,7 +281,7 @@ def generate_all_plots():
     plt.savefig(plot_dir + 'shap_classification.png', dpi=150)
     plt.close()
 
-    # 11. Regression SHAP values
+    # 12. Regression SHAP values
     features_reg = [
         'default_on_file_binary', 'cb_person_default_on_file', 'person_home_ownership_MORTGAGE',
         'person_home_ownership_RENT', 'loan_intent_MEDICAL', 'loan_intent_DEBTCONSOLIDATION',
@@ -295,6 +317,13 @@ def add_paragraph(tf, text, size=14, bold=False, color=(30, 30, 30), space_after
     p.font.color.rgb = RGBColor(*color)
     p.space_after = Pt(space_after)
 
+def fill_textbox(tf, bullets):
+    format_text_box(tf)
+    for bullet in bullets:
+        # bullet format: (text, size, bold, color, level)
+        text, size, bold, color, lvl = bullet
+        add_paragraph(tf, text, size=size, bold=bold, color=color, level=lvl)
+
 def style_table(table):
     for col_idx in range(len(table.columns)):
         cell = table.cell(0, col_idx)
@@ -320,14 +349,85 @@ def style_table(table):
             p.font.color.rgb = RGBColor(50, 50, 50)
 
 def fill_table(table, headers, data):
-    # Set headers
     for c, h in enumerate(headers):
         table.cell(0, c).text = h
-    # Set rows
     for r, row in enumerate(data):
         for c, val in enumerate(row):
             table.cell(r+1, c).text = str(val)
     style_table(table)
+
+# --- Standardized Slide Builders to Prevent Overlapping ---
+
+def add_title_slide(prs, title, subtitle_lines, notes):
+    s = prs.slides.add_slide(prs.slide_layouts[0])
+    s.shapes.placeholders[0].text = title
+    subtitle_tf = s.shapes.placeholders[1].text_frame
+    subtitle_tf.text = ""
+    for line in subtitle_lines:
+        text, size, bold, color = line
+        add_paragraph(subtitle_tf, text, size=size, bold=bold, color=color)
+    s.notes_slide.notes_text_frame.text = notes
+
+def add_section_header_slide(prs, title, notes):
+    s = prs.slides.add_slide(prs.slide_layouts[2])
+    # The header title box is Placeholder 0 in Layout 2
+    s.shapes.title.text = title
+    s.notes_slide.notes_text_frame.text = notes
+
+def add_content_slide_text(prs, title, bullets, notes):
+    s = prs.slides.add_slide(prs.slide_layouts[1])
+    s.shapes.title.text = title
+    for shp in list(s.shapes):
+        if shp.is_placeholder and shp.placeholder_format.type == 2: # BODY
+            s.shapes._spTree.remove(shp._element)
+    
+    # Add symmetric full width text box starting at top=2.15 inches
+    tf = s.shapes.add_textbox(Inches(0.8), Inches(2.15), Inches(11.7), Inches(4.8)).text_frame
+    fill_textbox(tf, bullets)
+    s.notes_slide.notes_text_frame.text = notes
+
+def add_content_slide_split_text_image(prs, title, bullets, image_file, caption, notes):
+    s = prs.slides.add_slide(prs.slide_layouts[1])
+    s.shapes.title.text = title
+    for shp in list(s.shapes):
+        if shp.is_placeholder and shp.placeholder_format.type == 2: # BODY
+            s.shapes._spTree.remove(shp._element)
+            
+    # Left text box starting at top=2.15 inches
+    tf = s.shapes.add_textbox(Inches(0.8), Inches(2.15), Inches(5.6), Inches(4.8)).text_frame
+    fill_textbox(tf, bullets)
+    
+    # Right image starting at top=2.15 inches
+    s.shapes.add_picture(plot_dir + image_file, Inches(6.8), Inches(2.15), Inches(5.7), Inches(4.0))
+    
+    # Image caption
+    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(6.25), Inches(5.7), Inches(0.7)).text_frame
+    format_text_box(cap_tf)
+    add_paragraph(cap_tf, caption, size=9.5, bold=True, color=(100, 100, 100))
+    
+    s.notes_slide.notes_text_frame.text = notes
+
+def add_content_slide_split_text_table(prs, title, bullets, headers, table_data, col_widths, notes):
+    s = prs.slides.add_slide(prs.slide_layouts[1])
+    s.shapes.title.text = title
+    for shp in list(s.shapes):
+        if shp.is_placeholder and shp.placeholder_format.type == 2: # BODY
+            s.shapes._spTree.remove(shp._element)
+            
+    # Left text box starting at top=2.15 inches
+    tf = s.shapes.add_textbox(Inches(0.8), Inches(2.15), Inches(5.6), Inches(4.8)).text_frame
+    fill_textbox(tf, bullets)
+    
+    # Right table starting at top=2.15 inches
+    rows = len(table_data) + 1
+    cols = len(headers)
+    t_shape = s.shapes.add_table(rows, cols, Inches(6.8), Inches(2.15), Inches(5.7), Inches(4.5))
+    table = t_shape.table
+    for idx, w in enumerate(col_widths):
+        table.columns[idx].width = Inches(w)
+    fill_table(table, headers, table_data)
+    
+    s.notes_slide.notes_text_frame.text = notes
 
 def create_presentation():
     print("Building the PowerPoint presentation...")
@@ -343,43 +443,23 @@ def create_presentation():
                 sldIdLst.remove(sldId)
                 break
 
-    # Helper function to create content slides
-    def add_content_slide(title):
-        slide = prs.slides.add_slide(prs.slide_layouts[1])
-        slide.shapes.title.text = title
-        for shp in list(slide.shapes):
-            if shp.is_placeholder and shp.placeholder_format.type == 2: # BODY
-                slide.shapes._spTree.remove(shp._element)
-        return slide
-
-    # Helper function to fill standard text columns
-    def fill_textbox(tf, bullets):
-        format_text_box(tf)
-        for bullet in bullets:
-            # bullet format: (text, size, bold, color, level)
-            text, size, bold, color, lvl = bullet
-            add_paragraph(tf, text, size=size, bold=bold, color=color, level=lvl)
-
-    # 1. Slide 1: TITLE layout
-    s = prs.slides.add_slide(prs.slide_layouts[0])
-    s.shapes.placeholders[0].text = "Predictive Modeling for Credit Risk"
-    subtitle_tf = s.shapes.placeholders[1].text_frame
-    subtitle_tf.text = ""
-    add_paragraph(subtitle_tf, "Applied Probability and Statistics for AI (AAI-500-IN1)", size=16, bold=True, color=(100, 100, 100))
-    add_paragraph(subtitle_tf, "Presenters: Diaesh Antony | N L N Sai Krishna Akula | Ashok Kumar Bhairwal", size=14, color=TEXT_DARK)
-    add_paragraph(subtitle_tf, "University of San Diego", size=14, bold=True, color=BLUE_RGB)
-    add_paragraph(subtitle_tf, "Instructor: Dr. Ebrahim Tarshizi | Date: June 15, 2026", size=12, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    # 1. Slide 1: Title Slide (TITLE Layout)
+    sub_lines = [
+        ("Applied Probability and Statistics for AI (AAI-500-IN1)", 16, True, (100, 100, 100)),
+        ("Presenters: Diaesh Antony | N L N Sai Krishna Akula | Ashok Kumar Bhairwal", 14, False, TEXT_DARK),
+        ("University of San Diego", 14, True, BLUE_RGB),
+        ("Instructor: Dr. Ebrahim Tarshizi | Date: June 15, 2026", 12, False, (100, 100, 100))
+    ]
+    notes = (
         "Welcome to our final project presentation on Credit Risk Modeling and Statistical Diagnostics. "
         "Our team consists of Diaesh Antony, Sai Krishna Akula, and Ashok Bhairwal. "
         "In this study, we develop a comprehensive predictive modeling framework to estimate default probability "
         "and determine interest rates using a Kaggle credit risk dataset of 32,581 records. "
         "Let's begin by discussing the business context."
     )
+    add_title_slide(prs, "Predictive Modeling for Credit Risk", sub_lines, notes)
 
-    # Slide 2: Introduction - Business Context & Decision Errors
-    s = add_content_slide("Introduction: Business Context & Decision Errors")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 2. Slide 2: Introduction: Business Context & Decision Errors
     bullets = [
         ("Lending Decisions Under Uncertainty", 16, True, BLUE_RGB, 0),
         ("Lenders must answer two central questions when reviewing a loan application:", 13, False, TEXT_DARK, 0),
@@ -390,135 +470,75 @@ def create_presentation():
         ("* Type I Error (Under-pricing risk): Lender treats a risky borrower as safe, setting too low of a rate. Borrower subsequently defaults, causing principal loss.", 12, False, TEXT_DARK, 1),
         ("* Type II Error (Over-pricing risk): Lender treats a safe borrower as risky, setting too high of a rate. The borrower walks to a competitor, causing lost business opportunity.", 12, False, TEXT_DARK, 1)
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(3, 3, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    table.columns[0].width = Inches(2.0)
-    table.columns[1].width = Inches(2.0)
-    table.columns[2].width = Inches(2.0)
     headers = ["Decision / Reality", "Default (Risky)", "Repay (Safe)"]
     data = [
         ["Approve Loan", "Type I Error\n(Missed Default)", "Correct Decision\n(Interest Income)"],
         ["Deny / High Rate", "Correct Decision\n(Risk Mitigated)", "Type II Error\n(Lost Business)"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "Lending decisions represent a delicate balance of risk. We frame this problem using hypothesis testing. "
         "If a lender makes a Type I error and under-prices risk, the borrower defaults, leading to severe capital losses. "
-        "Conversely, if the lender makes a Type II error and over-prices risk, a creditworthy borrower is rejected or goes to a competitor, representing lost business. "
+        "Conversely, if the lender makes a Type II error and over-pricing risk, a creditworthy borrower is rejected or goes to a competitor, representing lost business. "
         "Our modeling workflow aims to minimize both types of errors to optimize profitability."
     )
+    add_content_slide_split_text_table(prs, "Introduction: Business Context & Errors", bullets, headers, data, [2.0, 1.85, 1.85], notes)
 
-    # Slide 3: Introduction - Scope & Research Questions
-    s = add_content_slide("Introduction: Scope & Research Questions")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 3. Slide 3: Introduction: Research Questions & Scope
     bullets = [
         ("Core Research Questions", 18, True, BLUE_RGB, 0),
-        ("• Research Question 1 (Regression):", 15, True, TEXT_DARK, 0),
+        ("• Research Question 1 (Regression Target):", 15, True, TEXT_DARK, 0),
         ("Which borrower socio-demographic and financial characteristics (age, income, employment length, loan grade) are the strongest determinants of the interest rate charged on a loan?", 14, False, TEXT_DARK, 1),
-        ("• Research Question 2 (Classification):", 15, True, TEXT_DARK, 0),
+        ("• Research Question 2 (Classification Target):", 15, True, TEXT_DARK, 0),
         ("What is the marginal effect of borrower income on the probability of loan default, after controlling for loan amount and credit grade?", 14, False, TEXT_DARK, 1),
-        ("Analytical Scope & Pipeline", 18, True, BLUE_RGB, 0),
-        ("• Scope covers raw data acquisition, rigorous quality audit, and data cleaning.", 13, False, TEXT_DARK, 1),
-        ("• Includes statistical hypothesis testing (Welch t-test, ANOVA) and pgmpy Bayesian Network modeling.", 13, False, TEXT_DARK, 1),
-        ("• Compares 4 classification families (Logistic, RF, GB, CatBoost) and 5 regression models (OLS, Ridge, RF, GB, CatBoost).", 13, False, TEXT_DARK, 1),
-        ("• Emphasizes model interpretability through game-theoretic SHAP attributions.", 13, False, TEXT_DARK, 1),
+        ("Analytical Scope of This Presentation", 16, True, BLUE_RGB, 0),
+        ("We walk through the entire credit risk pipeline: Data prep, Exploratory statistics, Model selection (classifiers and regressors), Causal network learning, and multi-dimensional Diagnostics.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "This slide defines our research scope and target questions. "
         "First, we explore the determinants of interest rates using Ordinary Least Squares regression, evaluating which borrower variables play the strongest role. "
         "Second, we assess classification models to compute the marginal effect of borrower income on default probability while controlling for other variables. "
         "Our analytical pipeline progresses logically from preprocessing to inference, modeling, and diagnostics."
     )
+    add_content_slide_text(prs, "Introduction: Scope & Research Questions", bullets, notes)
 
-    # Slide 4: Related Work - Credit Risk Literature & Preprocessing
-    s = add_content_slide("Related Work: Literature & Preprocessing Theory")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 4. Slide 4: Introduction: Analytical Scope & Pipeline
     bullets = [
-        ("Foundational Credit Risk Pillars", 16, True, BLUE_RGB, 0),
-        ("Financial literature distinguishes three primary pillars of borrower default risk:", 13, False, TEXT_DARK, 0),
-        ("1. Ability to Pay: Captured by income, employment length, and debt burden (loan percentage income).", 13, False, TEXT_DARK, 1),
-        ("2. Historical Behavior: Captured by credit history length and prior default indicator records.", 13, False, TEXT_DARK, 1),
-        ("3. Loan Structure: Principal amount, credit grade, and specific loan intent.", 13, False, TEXT_DARK, 1),
-        ("Modeling Families in the Literature", 16, True, BLUE_RGB, 0),
-        ("• Classical Baselines (Logistic & Linear Regression): Favorited by regulatory bodies like the Consumer Financial Protection Bureau (CFPB) due to their direct auditability (Altman, 1968; Baesens et al., 2003).", 13, False, TEXT_DARK, 1),
-        ("• Machine Learning Ensembles (Random Forest, Gradient Boosting, CatBoost): Literature shows substantial performance improvements (ROC-AUC) over classical models (Breiman, 2001; Friedman, 2001; Prokhorenkova et al., 2018).", 13, False, TEXT_DARK, 1),
-        ("• Preprocessing Standards: Median imputation is resistant for skewed financial variables (Little & Rubin, 2019), and Tukey's fences (1977) are standard non-parametric outlier boundaries.", 13, False, TEXT_DARK, 1),
+        ("End-to-End Analytical Pipeline", 16, True, BLUE_RGB, 0),
+        ("• Phase 1: Data Acquisition & Preprocessing", 15, True, TEXT_DARK, 0),
+        ("Auditing missing data, applying median imputation, filtering outliers with Tukey's fences, and log-scaling skewed income distributions.", 13, False, TEXT_DARK, 1),
+        ("• Phase 2: Exploratory Data Analysis & Inferential Statistics", 15, True, TEXT_DARK, 0),
+        ("Running normality tests, simulating CLT bootstrap convergence, and testing grade-level variance differences using Welch t-tests and ANOVA.", 13, False, TEXT_DARK, 1),
+        ("• Phase 3: Model Selection & Training", 15, True, TEXT_DARK, 0),
+        ("Training classifiers (Logistic Regression, Random Forest, Gradient Boosting, CatBoost) and regressors (OLS, Ridge, RF, GB, CatBoost) with a pipeline.", 13, False, TEXT_DARK, 1),
+        ("• Phase 4: Model Diagnostics & Interpretability", 15, True, TEXT_DARK, 0),
+        ("Evaluating classification calibration (Brier), ROC/PR performance, segment errors, and explaining feature importance via SHAP attributions.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
-        "Our work is anchored in credit risk literature. "
-        "Traditional risk frameworks look at borrower ability to pay, past behavior, and loan parameters. "
-        "While logistic regression remains the regulatory gold standard because it is easily audited under fair lending acts, "
-        "modern machine learning ensembles like Random Forest and CatBoost achieve much higher predictive accuracy. "
-        "Furthermore, our preprocessing choices leverage established statistical methods: Little and Rubin's median imputation, "
-        "Tukey's IQR fences, and logarithmic scaling."
+    notes = (
+        "Our analysis follows a strict four-phase structure. We start with preprocessing, handling outliers and skewness. "
+        "We then perform exploratory tests to ensure mathematical assumptions hold. "
+        "In phase 3, we build pipelines to train classification and regression model families. "
+        "Finally, we assess their performance using diagnostics and game-theoretic SHAP attributions, establishing a transparent workflow."
     )
+    add_content_slide_text(prs, "Introduction: Analytical Scope & Pipeline", bullets, notes)
 
-    # Slide 5: Project Context: Missed Defaults vs. False Alarms
-    s = add_content_slide("Project Context: Missed Defaults vs. False Alarms")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
-    bullets = [
-        ("Lending Decisions Under Uncertainty", 16, True, BLUE_RGB, 0),
-        ("• Missed Defaults vs. False Rejections: Rejecting a creditworthy customer costs the bank expected interest income (Type II error). Approving a borrower who defaults leads to write-offs of the loan principal (Type I error).", 13, False, TEXT_DARK, 0),
-        ("• Regulatory CFPB Mandates: Lenders must justify loan rejections and rate pricing, requiring models that are interpretable rather than complex 'black-boxes'.", 13, False, TEXT_DARK, 1),
-        ("Decision Boundary Optimization", 16, True, BLUE_RGB, 0),
-        ("• Standard classification models optimize around a probability cutoff of 0.50.", 13, False, TEXT_DARK, 0),
-        ("• However, in high-cost-of-default environments, lenders should tune their classification boundary downward (e.g. to 0.15 or 0.24) to maximize recall of potential defaults, sacrificing some precision in exchange for capital safety.", 13, False, TEXT_DARK, 1),
-        ("• This project bridges the gap between black-box accuracy and white-box transparency using Bayesian networks and SHAP game theory values.", 13, False, TEXT_DARK, 1),
-    ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
-        "Lenders operate under strict economic and regulatory conditions. "
-        "A standard probability cutoff of 0.50 assuming symmetric costs is often not ideal. "
-        "If the principal loss from a default is far larger than the interest income from a successful loan, "
-        "the lender will want to lower the cutoff to catch defaults early. "
-        "We show that lowering the threshold increases our recall of defaults. "
-        "Furthermore, we utilize Bayesian Network graphs to provide visual causal paths for regulators."
+    # 5. Slide 5: Section Header: Data Cleanup & Exploratory Data Analysis
+    notes = (
+        "We now enter our first major section: Data Cleanup and Exploratory Data Analysis. "
+        "We'll review dataset descriptions, missing values, outliers, log transformations, normality tests, CLT simulations, and correlation matrices. "
+        "This section covers 10 detailed slides."
     )
+    add_section_header_slide(prs, "Section 1:\nData Cleanup & Exploratory Data Analysis", notes)
 
-    # Slide 6: Project Goals & Modeling Objectives
-    s = add_content_slide("Project Goals & Modeling Objectives")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 6. Slide 6: Data Prep: Dataset Description
     bullets = [
-        ("1. Classification Goal (Default Prediction)", 16, True, BLUE_RGB, 0),
-        ("Build a binary default classifier to predict loan_status (0 = Non-default, 1 = Default) using demographic and financial parameters. Target: ROC-AUC > 0.90, Brier Score < 0.10.", 13, False, TEXT_DARK, 1),
-        ("2. Regression Goal (Lending Benchmarks)", 16, True, BLUE_RGB, 0),
-        ("Develop regression models to estimate key continuous numeric credit variables:", 13, False, TEXT_DARK, 0),
-        ("• Interest Rate (loan_int_rate) - Primary target for OLS diagnostics.", 13, False, TEXT_DARK, 1),
-        ("• Loan Amount (loan_amnt) - Establish borrower loan benchmarks.", 13, False, TEXT_DARK, 1),
-        ("• Loan Percent of Income (loan_percent_income) - Measures overall household leverage.", 13, False, TEXT_DARK, 1),
-        ("3. Interpretation Goal (Reasoning & White-Box Auditing)", 16, True, BLUE_RGB, 0),
-        ("• Map dependencies using a learned Causal Bayesian Network DAG with maximum likelihood estimations.", 13, False, TEXT_DARK, 1),
-        ("• Explain predictions using SHAP feature attribution to understand the marginal impact of leverage and defaults.", 13, False, TEXT_DARK, 1),
-    ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
-        "We translate these needs into three distinct modeling goals. "
-        "First, we address classification, aiming to identify defaulting loans with high accuracy and reliable probabilities. "
-        "Second, we look at regression, predicting the loan amount, debt-to-income percentage, and interest rates. "
-        "Third, we address interpretability, using Bayesian networks for causal structure and SHAP values for feature-level impact."
-    )
-
-    # Slide 7: Data Prep: Dataset Description
-    s = add_content_slide("Data Prep: Dataset Description")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
-    bullets = [
-        ("Kaggle Credit Risk Dataset", 16, True, BLUE_RGB, 0),
+        ("Credit Risk Modeling Dataset", 16, True, BLUE_RGB, 0),
         ("• Sourced from Kaggle repository; stored as data/raw/credit_risk_dataset.csv.", 13, False, TEXT_DARK, 0),
-        ("• Sized at 32,581 raw observations across 12 feature columns.", 13, False, TEXT_DARK, 1),
+        ("• Size: 32,581 raw observations across 12 feature columns.", 13, False, TEXT_DARK, 1),
         ("Key Characteristics", 16, True, BLUE_RGB, 0),
         ("• Target Variable: `loan_status` (Binary: 0 = non-default, 1 = default).", 13, False, TEXT_DARK, 1),
         ("• Imbalance Rate: 77.56% non-default (25,273 rows) vs. 22.44% default (7,308 rows).", 13, False, TEXT_DARK, 1),
-        ("• Contains a mix of numerical demographics (age, income), loan parameters (amount, interest, grade), and credit history indicators.", 13, False, TEXT_DARK, 1),
+        ("• Features include demographics, loan parameters, and historical default indicators.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(8, 3, Inches(6.8), Inches(1.3), Inches(6.0), Inches(5.0))
-    table = t_shape.table
-    table.columns[0].width = Inches(2.0)
-    table.columns[1].width = Inches(1.2)
-    table.columns[2].width = Inches(2.8)
     headers = ["Feature", "Type", "Description"]
     data = [
         ["person_age", "Integer", "Borrower age in years"],
@@ -529,55 +549,65 @@ def create_presentation():
         ["loan_amnt", "Integer", "Loan principal amount ($)"],
         ["loan_int_rate", "Float", "Interest rate in % (Target)"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
-        "Our dataset comes from Kaggle and contains 32,581 borrow profiles across 12 features. "
+    notes = (
+        "Our dataset contains 32,581 borrower profiles across 12 features. "
         "The default rate is 22.44%, creating a moderate class imbalance. "
         "The right-hand table displays the primary features, including borrower demographics and loan characteristics. "
         "Let's look at how we handled missing values in these fields."
     )
+    add_content_slide_split_text_table(prs, "Data Prep: Dataset Description", bullets, headers, data, [1.5, 1.2, 3.0], notes)
 
-    # Slide 8: Data Prep: Missing Value Imputation
-    s = add_content_slide("Data Prep: Missing Value Imputation")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 7. Slide 7: Data Prep: Missing Value Audit
     bullets = [
         ("Audit of Missing Values", 16, True, BLUE_RGB, 0),
-        ("Two columns contained missing values in the raw dataset:", 13, False, TEXT_DARK, 0),
+        ("We identified missing values in two primary fields in the raw dataset:", 13, False, TEXT_DARK, 0),
         ("• `person_emp_length`: 895 missing entries (2.75% of rows)", 13, False, TEXT_DARK, 1),
         ("• `loan_int_rate`: 3,116 missing entries (9.56% of rows)", 13, False, TEXT_DARK, 1),
+        ("Treatment Decision", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Simply dropping missing records would result in a substantial data loss (over 12% combined).", 13, False, TEXT_DARK, 1),
+        ("• Rationale: Naive mean imputation would introduce severe bias due to the skewness of financial features.", 13, False, TEXT_DARK, 1),
+        ("• Action: Implement robust median imputation (Little & Rubin, 2019) to preserve data sample size without inflating parameters.", 13, False, TEXT_DARK, 1),
+    ]
+    headers = ["Feature", "Missing (n)", "Missing %", "Status"]
+    data = [
+        ["person_emp_length", "895", "2.75%", "Needs Imputation"],
+        ["loan_int_rate", "3,116", "9.56%", "Needs Imputation"],
+        ["Other Columns", "0", "0.00%", "Complete"]
+    ]
+    notes = (
+        "During our initial data audit, we found that two fields contained missing values: "
+        "employment length (2.75%) and interest rate (9.56%). "
+        "Because dropping these would result in losing over 12% of the dataset, we decided to impute them. "
+        "The next slide explains the statistical logic behind choosing the median."
+    )
+    add_content_slide_split_text_table(prs, "Data Prep: Missing Value Audit", bullets, headers, data, [2.0, 1.2, 1.2, 1.3], notes)
+
+    # 8. Slide 8: Data Prep: Median Imputation Rationale
+    bullets = [
         ("Robust Median Imputation Rationale", 16, True, BLUE_RGB, 0),
-        ("• Mean imputation is highly sensitive to extreme right-hand outliers in skewed distributions. It would overestimate the typical value.", 13, False, TEXT_DARK, 1),
+        ("• Right-Skewed Distributions: Income and interest rates are heavily skewed. The mean is inflated by high-earning outliers and would overestimate typical values.", 13, False, TEXT_DARK, 1),
         ("• Median is rank-based (resistant estimator):", 13, False, TEXT_DARK, 1),
-        ("   x̃ = x_((n+1)/2) for odd n", 12, False, TEXT_DARK, 2),
-        ("• Computed imputation values:", 13, False, TEXT_DARK, 1),
-        ("   - Median `person_emp_length` = 4.0 years", 12, False, TEXT_DARK, 2),
-        ("   - Median `loan_int_rate` = 10.99%", 12, False, TEXT_DARK, 2),
+        ("   x̃ = x_((n+1)/2) for odd n", 14, True, TEXT_DARK, 2),
+        ("• Insensitive to extreme values — a vital property in financial distributions (Little & Rubin, 2019).", 13, False, TEXT_DARK, 1),
+        ("Imputed Values Results", 16, True, BLUE_RGB, 0),
+        ("• `person_emp_length` Imputed Median = 4.0 years", 13, False, TEXT_DARK, 1),
+        ("• `loan_int_rate` Imputed Median = 10.99%", 13, False, TEXT_DARK, 1),
         ("• Outcome: 100% missing values resolved prior to split.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(4, 4, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    table.columns[0].width = Inches(2.0)
-    table.columns[1].width = Inches(1.2)
-    table.columns[2].width = Inches(1.4)
-    table.columns[3].width = Inches(1.4)
-    headers = ["Feature", "Missing (n)", "Missing %", "Imputed Value"]
+    headers = ["Feature", "Raw Mean", "Raw Median", "Imputed Value"]
     data = [
-        ["person_emp_length", "895", "2.75%", "4.00 years"],
-        ["loan_int_rate", "3,116", "9.56%", "10.99%"],
-        ["Other Columns", "0", "0.00%", "N/A"]
+        ["person_emp_length", "4.79 years", "4.00 years", "4.00 years"],
+        ["loan_int_rate", "11.01%", "10.99%", "10.99%"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
-        "We identified missing values in two key features: employment length and interest rate. "
-        "Following Little and Rubin, mean imputation would overstate these values because financial distributions are right-skewed. "
-        "We therefore utilized robust median imputation, filling missing employment lengths with 4.0 years and interest rates with 10.99%. "
-        "This left us with zero missing values."
+    notes = (
+        "We selected median imputation rather than mean imputation. "
+        "Because financial variables in this dataset are right-skewed, the mean is inflated by high-value outliers. "
+        "The median, being rank-based, is statistically resistant. "
+        "We filled missing employment lengths with 4.0 years and interest rates with 10.99%, completing our imputation process."
     )
+    add_content_slide_split_text_table(prs, "Data Prep: Median Imputation Rationale", bullets, headers, data, [2.0, 1.2, 1.2, 1.3], notes)
 
-    # Slide 9: Data Prep: Outlier Detection
-    s = add_content_slide("Data Prep: Outlier Detection")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 9. Slide 9: Data Prep: Outlier Detection
     bullets = [
         ("Tukey IQR Outlier Boundary Detection", 16, True, BLUE_RGB, 0),
         ("We apply Tukey's non-parametric fences (Tukey, 1977) to identify extreme outliers without normal distribution assumptions:", 13, False, TEXT_DARK, 0),
@@ -587,56 +617,45 @@ def create_presentation():
         ("Computed Bounds & Counts", 16, True, BLUE_RGB, 0),
         ("• `person_age`: Q1=23, Q3=30, IQR=7. Bounds: 12.50 to 40.50 years. Total outliers: 1,494.", 13, False, TEXT_DARK, 1),
         ("• `person_income`: Q1=$38,500, Q3=$79,200, IQR=$40,700. Bounds: -$22,550 to $140,250. Total outliers: 1,484.", 13, False, TEXT_DARK, 1),
-        ("• Boundary Decisions: Imposed age cap of <= 100 years to eliminate obvious data entry errors (e.g., maximum raw age was 144).", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(3, 7, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    widths = [1.2, 0.7, 0.7, 0.7, 0.9, 0.9, 0.9]
-    for col_idx, width in enumerate(widths):
-        table.columns[col_idx].width = Inches(width)
     headers = ["Feature", "Q1", "Q3", "IQR", "Lower B.", "Upper B.", "Outliers"]
     data = [
         ["person_age", "23.0", "30.0", "7.0", "12.5", "40.5", "1,494"],
         ["person_income", "$38.5K", "$79.2K", "$40.7K", "-$22.5K", "$140.2K", "1,484"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "Outlier detection is vital. We used Tukey's IQR fences to identify extreme values in borrower age and income. "
         "For age, the upper bound was calculated at 40.5 years, identifying 1,494 outliers. "
         "For income, the upper bound was $140,250, identifying 1,484 outliers. "
-        "An additional domain constraint was set to cap age at 100 years, removing physically impossible values like an age of 144."
+        "These outliers were removed to avoid coefficient distortions in OLS regression."
     )
+    add_content_slide_split_text_table(prs, "Data Prep: Outlier Detection (Tukey)", bullets, headers, data, [1.1, 0.7, 0.7, 0.7, 0.8, 0.8, 0.9], notes)
 
-    # Slide 10: Data Prep: Data Integrity & Cleaning
-    s = add_content_slide("Data Prep: Data Integrity & Cleaning")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 10. Slide 10: Data Prep: Data Integrity & Cleaning
     bullets = [
         ("Comprehensive Cleaning Pipeline", 18, True, BLUE_RGB, 0),
-        ("1. Tukey IQR Outliers Filter:", 15, True, TEXT_DARK, 0),
-        ("Removed extreme age and income values. Filtered out records outside bounds.", 13, False, TEXT_DARK, 1),
-        ("2. Duplicate Row Removal:", 15, True, TEXT_DARK, 0),
+        ("• Outlier Filtering:", 15, True, TEXT_DARK, 0),
+        ("Removed extreme age and income values using Tukey's fences.", 13, False, TEXT_DARK, 1),
+        ("• Duplicate Row Removal:", 15, True, TEXT_DARK, 0),
         ("Identified and removed 156 exact duplicate rows, preventing statistical inflation during training.", 13, False, TEXT_DARK, 1),
-        ("3. Logical Consistency Checks:", 15, True, TEXT_DARK, 0),
+        ("• Logical Consistency Checks:", 15, True, TEXT_DARK, 0),
         ("Removed 1 record where employment length exceeded age (e.g. `person_emp_length` > `person_age`), which is logically impossible.", 13, False, TEXT_DARK, 1),
-        ("4. Enforced Domain Constraints:", 15, True, TEXT_DARK, 0),
-        ("Enforced `person_age` <= 100 years to correct data entry errors.", 13, False, TEXT_DARK, 1),
+        ("• Enforced Domain Constraints:", 15, True, TEXT_DARK, 0),
+        ("Enforced `person_age` <= 100 years to correct data entry errors (e.g., maximum raw age was 144).", 13, False, TEXT_DARK, 1),
         ("Summary of Cleanup Impact", 16, True, BLUE_RGB, 0),
         ("• Raw Dataset Count: 32,581 observations", 13, False, TEXT_DARK, 1),
         ("• Cleaned Dataset Count: 29,567 observations", 13, False, TEXT_DARK, 1),
         ("• Total Data Loss: 3,014 records (9.25% reduction). Exported to `credit_risk_cleaned.csv`.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We performed extensive data integrity audits. "
         "Beyond outlier filtering, we removed 156 exact duplicate rows to prevent artificial overfitting. "
         "We also applied a logical consistency check, removing a record where the employment length was longer than the borrower's age. "
         "In total, our dataset size was reduced by 9.25% to 29,567 observations, representing our finalized clean sample."
     )
+    add_content_slide_text(prs, "Data Prep: Data Integrity & Cleaning", bullets, notes)
 
-    # Slide 11: Data Prep: Skewness & Log-Transformation
-    s = add_content_slide("Data Prep: Skewness & Log-Transformation")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 11. Slide 11: Data Prep: Skewness & Log-Transformation
     bullets = [
         ("Income Right-Skewness", 16, True, BLUE_RGB, 0),
         ("• Personal annual income in the cleaned dataset is heavily right-skewed (skewness = 0.7419).", 13, False, TEXT_DARK, 0),
@@ -647,57 +666,43 @@ def create_presentation():
         ("• Rationale: Adding +1 handles potential zero-income observations (though none are present in this dataset).", 13, False, TEXT_DARK, 1),
         ("• Transformation Effect: Skewness drops from 0.7419 to -0.4378, effectively compressing the tail and stabilizing variance.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'eda_income_transform.png', Inches(6.8), Inches(1.6), Inches(6.0), Inches(4.2))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 11: Annual income distribution before and after log-transformation, showing compression of the right tail.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "Income is characteristically right-skewed. OLS regression assumes normality of residuals and homoscedasticity. "
         "A highly skewed predictor violates these assumptions. "
         "To resolve this, we applied a log-transformation, compressing the right tail. "
         "As seen in Figure 11, this shifted the skewness from a positive 0.74 to a mild -0.44, providing a symmetric input for OLS."
     )
+    add_content_slide_split_text_image(prs, "Data Prep: Skewness & Log-Transformation", bullets, "eda_income_transform.png", 
+                                       "Figure 11: Annual income distribution before and after log-transformation, compressing the tail.", notes)
 
-    # Slide 12: Exploratory Data Analysis: Shapiro-Wilk
-    s = add_content_slide("Exploratory Data Analysis: Shapiro-Wilk")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 12. Slide 12: Exploratory Data Analysis: Shapiro-Wilk
     bullets = [
         ("Shapiro-Wilk Gaussianity Test", 16, True, BLUE_RGB, 0),
         ("We formally test whether continuous features are normally distributed. Hypotheses are defined as:", 13, False, TEXT_DARK, 0),
         ("  H0: The sample is drawn from a normal distribution.", 13, False, TEXT_DARK, 1),
         ("  H1: The sample is not normally distributed.", 13, False, TEXT_DARK, 1),
         ("Test Execution", 16, True, BLUE_RGB, 0),
-        ("• Shapiro-Wilk (Shapiro & Wilk, 1965) W-statistic measures correlation between observed values and normal order statistics.", 13, False, TEXT_DARK, 1),
+        ("• Shapiro-Wilk W-statistic measures correlation between observed values and normal order statistics.", 13, False, TEXT_DARK, 1),
         ("• Executed on a random sample of 5,000 observations (test constraint).", 13, False, TEXT_DARK, 1),
         ("• Results for person_income:", 13, False, TEXT_DARK, 1),
         ("   - Raw Income: W = 0.9103, p-value < 2.2e-16", 12, False, TEXT_DARK, 2),
         ("   - Log Income: W = 0.9854, p-value = 3.42e-12", 12, False, TEXT_DARK, 2),
         ("• Decision: Reject H0 at alpha = 0.05. Even after log-transformation, data remains non-normal, requiring non-parametric validations.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(3, 4, Inches(6.8), Inches(2.0), Inches(6.0), Inches(2.5))
-    table = t_shape.table
-    table.columns[0].width = Inches(2.0)
-    table.columns[1].width = Inches(1.2)
-    table.columns[2].width = Inches(1.4)
-    table.columns[3].width = Inches(1.4)
     headers = ["Feature", "W Statistic", "p-value", "Conclusion"]
     data = [
         ["person_income (Raw)", "0.9103", "< 2.2e-16", "Reject Normality"],
         ["log_person_income", "0.9854", "3.42e-12", "Reject Normality"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "To verify normality, we applied the Shapiro-Wilk test to a random subset of 5,000 records. "
         "For both raw and log-transformed income, the null hypothesis of normality was strongly rejected with p-values near zero. "
         "This indicates that while the log-transform makes the shape symmetric, it does not achieve true mathematical normality. "
         "This directs us to look at the Central Limit Theorem to justify parametric linear models."
     )
+    add_content_slide_split_text_table(prs, "Exploratory Data Analysis: Shapiro-Wilk", bullets, headers, data, [2.0, 1.2, 1.2, 1.3], notes)
 
-    # Slide 13: Exploratory Data Analysis: CLT Simulation
-    s = add_content_slide("Exploratory Data Analysis: CLT Simulation")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 13. Slide 13: Exploratory Data Analysis: CLT Simulation
     bullets = [
         ("Central Limit Theorem (CLT) Theory", 16, True, BLUE_RGB, 0),
         ("Even if individual borrower observations are non-normal, the CLT guarantees that the sampling distribution of the mean converges to normality as sample size increases:", 13, False, TEXT_DARK, 0),
@@ -711,22 +716,17 @@ def create_presentation():
         ("   - At n=200, converges to normal (W=0.9991, p = 0.12 > 0.05).", 12, False, TEXT_DARK, 2),
         ("• Conclusion: Validates use of standard parametric t-tests and ANOVA.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'eda_clt_simulation.png', Inches(6.5), Inches(1.6), Inches(6.5), Inches(4.2))
-    cap_tf = s.shapes.add_textbox(Inches(6.5), Inches(5.9), Inches(6.5), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 13: Bootstrap sampling distributions of mean income. Normal convergence is reached at n = 200.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "The Central Limit Theorem provides the foundation for our parametric tests. "
         "We ran a bootstrap simulation drawing 5,000 samples at sizes 5, 30, and 200. "
         "As shown in Figure 13, at n=5, the distribution of means is heavily skewed. "
         "By n=200, the distribution converges to a normal bell-shape, and the Shapiro-Wilk test fails to reject normality (p > 0.05). "
         "This validates our downstream t-tests and ANOVA."
     )
+    add_content_slide_split_text_image(prs, "Exploratory Data Analysis: CLT Simulation", bullets, "eda_clt_simulation.png",
+                                       "Figure 13: Bootstrap sampling distributions of mean income. Normal convergence is reached at n = 200.", notes)
 
-    # Slide 14: Exploratory Data Analysis: Correlations
-    s = add_content_slide("Exploratory Data Analysis: Correlations")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 14. Slide 14: Exploratory Data Analysis: Correlations
     bullets = [
         ("Feature Correlation Profile", 16, True, BLUE_RGB, 0),
         ("Pearson correlation r measures linear relationships between features:", 13, False, TEXT_DARK, 0),
@@ -737,21 +737,47 @@ def create_presentation():
         ("   - High correlation between borrower age and credit history length: `person_age` vs `cb_person_cred_hist_length` (r = 0.836).", 13, False, TEXT_DARK, 1),
         ("   - Rationale: High linear redundancy between age and history length will necessitate a formal Variance Inflation Factor (VIF) audit.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'eda_correlation.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 14: Heatmap showing linear correlation coefficients between numerical inputs and target variable.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We computed a Pearson correlation matrix to review linear relationships. "
         "The strongest positive correlations with default are loan percent of income (0.38) and interest rate (0.33). "
         "We also identified a strong relationship between borrower age and credit history length (0.836), "
         "warning of potential multicollinearity in our regression models that we will test using VIF."
     )
+    add_content_slide_split_text_image(prs, "Exploratory Data Analysis: Correlations", bullets, "eda_correlation.png",
+                                       "Figure 14: Heatmap showing linear correlation coefficients between numerical inputs.", notes)
 
-    # Slide 15: Model Selection: Preprocessing Pipeline
-    s = add_content_slide("Model Selection: Preprocessing Pipeline")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 15. Slide 15: Exploratory Data Analysis: Categorical Risk Trends
+    bullets = [
+        ("Exploratory Categorical Risks", 16, True, BLUE_RGB, 0),
+        ("We explore default rates across categorical borrower and loan variables:", 13, False, TEXT_DARK, 0),
+        ("• Home Ownership Impact:", 13, False, TEXT_DARK, 1),
+        ("   - RENT: Highest default rate (~31%), signaling lower asset stability.", 12, False, TEXT_DARK, 2),
+        ("   - OWN & MORTGAGE: Lower default rates (~7% and ~12% respectively), indicating stronger borrower net worth.", 12, False, TEXT_DARK, 2),
+        ("• Loan Intent Impact:", 13, False, TEXT_DARK, 1),
+        ("   - DEBTCONSOLIDATION & MEDICAL: Highest default rates (~28%), signaling borrowers under financial stress.", 12, False, TEXT_DARK, 2),
+        ("   - VENTURE & EDUCATION: Lower default rates (~15%), indicating capital investments with potential future returns.", 12, False, TEXT_DARK, 2),
+        ("• Rationale: These non-linear differences support nominal feature one-hot encoding for machine learning models.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "We analyzed default rates across categorical factors. Renters default at a rate of 31%, "
+        "compared to only 7% for homeowners, indicating asset stability plays a major role. "
+        "For loan intent, debt consolidation and medical loans default at 28%, representing emergency funding needs, "
+        "while venture and education default at 15%. "
+        "Figure 15 displays these risk patterns, which justify encoding home ownership and loan intent."
+    )
+    add_content_slide_split_text_image(prs, "Exploratory Data Analysis: Categorical Risk Trends", bullets, "eda_categorical_risk.png",
+                                       "Figure 15: Observed default rates across borrower housing and loan purpose features.", notes)
+
+    # 16. Slide 16: Section Header: Model Selection
+    notes = (
+        "We now enter our second major section: Model Selection. "
+        "We'll review our preprocessing pipeline, data splitting, baseline and ensemble classifiers (Logistic, RF, GB, CatBoost), "
+        "regression families (OLS, Ridge, RF, GB, CatBoost), and Bayesian network structure learning. "
+        "This section covers 10 detailed slides."
+    )
+    add_section_header_slide(prs, "Section 2:\nModel Selection", notes)
+
+    # 17. Slide 17: Model Selection: Preprocessing Pipeline
     bullets = [
         ("Shared Scikit-Learn Preprocessing Pipeline", 18, True, BLUE_RGB, 0),
         ("To ensure that raw and new applicant inputs are handled consistently, we build a standardized preprocessing pipeline.", 13, False, TEXT_DARK, 0),
@@ -765,17 +791,15 @@ def create_presentation():
         ("• Pipeline Save Integration:", 15, True, TEXT_DARK, 0),
         ("The final fitted pipelines are saved as single jobs using `joblib`. This ensures that downstream application inference uses the exact same scaling centers.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "To guarantee consistency, we engineered a shared preprocessing pipeline using Scikit-Learn. "
         "Numeric columns are standard scaled. Nominal variables like home ownership and loan intent are one-hot encoded, "
         "while ordinal loan grades are mapped to a numeric scale to retain their ordering. "
         "This pipeline is saved using joblib, bundling the preprocessing parameters and estimator together."
     )
+    add_content_slide_text(prs, "Model Selection: Preprocessing Pipeline", bullets, notes)
 
-    # Slide 16: Model Selection: Stratified Partitioning
-    s = add_content_slide("Model Selection: Stratified Partitioning")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 18. Slide 18: Model Selection: Train-Test Partitioning
     bullets = [
         ("Classification Data Splitting", 16, True, BLUE_RGB, 0),
         ("• Split Ratio: 80% train and 20% validation test partition.", 13, False, TEXT_DARK, 0),
@@ -785,106 +809,222 @@ def create_presentation():
         ("• Target Groups: Regressions are fitted specifically on non-defaulting loans (18,344 train, 4,587 test) to establish standard lending rate behaviors.", 13, False, TEXT_DARK, 1),
         ("• Reproducibility: Seed set at `RANDOM_STATE = 42` to ensure consistent data splits across notebooks.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(4, 4, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    table.columns[0].width = Inches(1.8)
-    table.columns[1].width = Inches(1.4)
-    table.columns[2].width = Inches(1.4)
-    table.columns[3].width = Inches(1.4)
     headers = ["Data Partition", "Classification Rows", "Regression Rows", "Default Rate %"]
     data = [
         ["Training Set", "23,653", "18,344", "22.44%"],
         ["Test/Val Set", "5,914", "4,587", "22.44%"],
         ["Total Dataset", "29,567", "22,931", "22.44%"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We partitioned the cleaned dataset using an 80/20 train/test split. "
         "For classification, we applied stratified split, which ensures the default rate is exactly 22.44% in both splits. "
         "For regression, only non-default cases were used to model standard interest rate and loan behaviors. "
         "We locked in the split using random seed 42 to ensure exact reproducibility of our metrics."
     )
+    add_content_slide_split_text_table(prs, "Model Selection: Train-Test Partitioning", bullets, headers, data, [1.8, 1.4, 1.4, 1.4], notes)
 
-    # Slide 17: Model Selection: Compared Model Families
-    s = add_content_slide("Model Selection: Compared Model Families")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 19. Slide 19: Model Selection: Logistic Regression
     bullets = [
-        ("Default Classification Models (Target: loan_status)", 16, True, BLUE_RGB, 0),
-        ("• Logistic Regression: Class-weighted baseline (`class_weight='balanced'`) to manage minor class default sensitivity.", 13, False, TEXT_DARK, 1),
-        ("• Random Forest Classifier: Bagged ensemble of 300 decision trees to capture non-linear relationships.", 13, False, TEXT_DARK, 1),
-        ("• Gradient Boosting Classifier: Sequential boosting tree framework using sklearn defaults.", 13, False, TEXT_DARK, 1),
-        ("• CatBoost Classifier: Categorical-focused gradient boosting using 300 iterations, depth=6, and learning_rate=0.05 (Prokhorenkova et al., 2018).", 13, False, TEXT_DARK, 1),
-        ("Lending Benchmark Regressors (Targets: loan_amnt, interest_rate, ratio)", 16, True, BLUE_RGB, 0),
-        ("• Ordinary Least Squares (OLS): Unregularized baseline from `statsmodels` for diagnostic checks.", 13, False, TEXT_DARK, 1),
-        ("• Ridge Regression: L2 regularized regression to penalize high coefficients (alpha = 1.0).", 13, False, TEXT_DARK, 1),
-        ("• Random Forest Regressor: 300 trees, regularized with `min_samples_leaf=10` to smooth predictions.", 13, False, TEXT_DARK, 1),
-        ("• Gradient Boosting & CatBoost Regressors: Tree ensembles minimizing RMSE loss.", 13, False, TEXT_DARK, 1),
+        ("Logistic Regression Classifier", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Serves as the classic parametric baseline for default classification.", 13, False, TEXT_DARK, 0),
+        ("• Formulates the probability of default using the logistic link function:", 13, False, TEXT_DARK, 1),
+        ("   P(y = 1 | x) = 1 / (1 + e^-(β_0 + β_1*x_1 + ...))", 14, True, TEXT_DARK, 2),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - Solver: L-BFGS optimization algorithm.", 12, False, TEXT_DARK, 1),
+        ("   - Regularization: L2 penalty default.", 12, False, TEXT_DARK, 1),
+        ("   - Class Balancing: Enforced `class_weight='balanced'`.", 12, False, TEXT_DARK, 1),
+        ("• Balances class weighting: Assigns higher weights to default cases to correct for the 22.4% imbalance, forcing the solver to focus on minority-class errors.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
-        "We compared multiple model families. "
-        "For classification, we trained Logistic Regression, Random Forest, Gradient Boosting, and CatBoost. "
-        "For regression, we trained OLS, Ridge, Random Forest, Gradient Boosting, and CatBoost. "
-        "This variety ensures that our final choices are based on empirical performance rather than bias toward any single algorithm."
+    notes = (
+        "Logistic regression is our baseline classifier. It calculates the log-odds of default as a linear combination of input features. "
+        "To handle the class imbalance, we applied balanced class weights. "
+        "This scales the default class loss during optimization, forcing the L-BFGS solver to focus on minority default records."
     )
+    add_content_slide_text(prs, "Model Selection: Logistic Regression", bullets, notes)
 
-    # Slide 18: Model Analysis: Default Classification Performance
-    s = add_content_slide("Model Analysis: Default Classification Performance")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 20. Slide 20: Model Selection: Random Forest
     bullets = [
-        ("Classification Metrics Analysis", 16, True, BLUE_RGB, 0),
+        ("Random Forest Classifier", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Non-parametric tree ensemble model. Bypasses linear assumptions by constructing independent decision trees.", 13, False, TEXT_DARK, 0),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - `n_estimators = 300`: Generates 300 decision trees to average predictions and reduce variance.", 12, False, TEXT_DARK, 1),
+        ("   - `class_weight = 'balanced'`: Enforces balanced node splitting to capture default indicators.", 12, False, TEXT_DARK, 1),
+        ("   - `n_jobs = -1`: Uses all CPU cores for training.", 12, False, TEXT_DARK, 1),
+        ("• Splitting Logic: Trees are built through Bootstrap Aggregation (bagging) where each split evaluates random subsets of features, capturing complex interactions like debt-to-income and home ownership.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "Random Forest is our first ensemble classifier. It builds 300 decision trees using bootstrap aggregation, "
+        "where each node evaluates a random subset of features. This helps reduce variance and avoids overfitting. "
+        "We also applied balanced class weights to help trees capture risk interactions among the variables."
+    )
+    add_content_slide_text(prs, "Model Selection: Random Forest", bullets, notes)
+
+    # 21. Slide 21: Model Selection: Gradient Boosting
+    bullets = [
+        ("Gradient Boosting Classifier", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Sequential boosting tree ensemble. Builds trees that sequentially correct the errors of previous trees.", 13, False, TEXT_DARK, 0),
+        ("• Iterative Loss Minimization:", 13, False, TEXT_DARK, 1),
+        ("   Uses gradient descent to minimize log-loss (cross-entropy) at each step.", 12, False, TEXT_DARK, 2),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - Base estimator: standard decision trees.", 12, False, TEXT_DARK, 1),
+        ("   - Learning rate: default 0.1.", 12, False, TEXT_DARK, 1),
+        ("   - Estimators count: standard 100 iterations.", 12, False, TEXT_DARK, 1),
+        ("• Rationale: Represents a classic, untuned boosted baseline from Scikit-Learn to establish standard boosting performance prior to CatBoost implementation.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "Gradient Boosting builds trees sequentially rather than in parallel. "
+        "Each new tree fits to the residuals of the loss function, minimizing cross-entropy log-loss. "
+        "We trained a standard Scikit-Learn Gradient Boosting model as a benchmark for comparison."
+    )
+    add_content_slide_text(prs, "Model Selection: Gradient Boosting", bullets, notes)
+
+    # 22. Slide 22: Model Selection: CatBoost
+    bullets = [
+        ("CatBoost Classifier Champion", 16, True, BLUE_RGB, 0),
+        ("• Rationale: State-of-the-art gradient boosting framework (Prokhorenkova et al., 2018). Optimized specifically for categorical features and tabular data structures.", 13, False, TEXT_DARK, 0),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - `iterations = 300`: Sequential boosting steps.", 12, False, TEXT_DARK, 1),
+        ("   - `learning_rate = 0.05`: Slow learning rate to prevent overfitting.", 12, False, TEXT_DARK, 1),
+        ("   - `depth = 6`: Restricts tree depth to 6 levels to reduce model complexity.", 12, False, TEXT_DARK, 1),
+        ("   - `eval_metric = 'AUC'`: Monitors AUC-ROC of default cases.", 12, False, TEXT_DARK, 1),
+        ("• Symmetric Trees: Uses symmetric (oblivious) trees, which split on the same feature across each level. This reduces inference latency and prevents overfitting.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "CatBoost is our champion classifier. It utilizes symmetric or oblivious trees, "
+        "applying the same split criteria across an entire depth level. This speeds up prediction times and reduces overfitting. "
+        "We set iterations to 300 and learning rate to a gradual 0.05 to ensure stable convergence, "
+        "monitoring AUC-ROC during the process."
+    )
+    add_content_slide_text(prs, "Model Selection: CatBoost", bullets, notes)
+
+    # 23. Slide 23: Model Selection: OLS & Ridge Regressors
+    bullets = [
+        ("Ordinary Least Squares (OLS) Regressor", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Parametric linear regression baseline to predict interest rates (`loan_int_rate`).", 13, False, TEXT_DARK, 0),
+        ("• Estimates parameters by minimizing the Sum of Squared Residuals (SSR):", 13, False, TEXT_DARK, 1),
+        ("   β = (X^T * X)^-1 * X^T * y", 14, True, TEXT_DARK, 2),
+        ("• Provides direct parameter coefficient values and p-values for statistical hypothesis tests.", 13, False, TEXT_DARK, 1),
+        ("Ridge Regression (L2 Regularization)", 16, True, BLUE_RGB, 0),
+        ("• Regularized baseline: Adds a squared L2 penalty to the loss function to shrink parameters:", 13, False, TEXT_DARK, 0),
+        ("   Loss = SSR + α * sum(β_j^2)", 14, True, TEXT_DARK, 1),
+        ("• Alpha = 1.0: Mitigates multicollinearity between borrower age and credit history length.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "For regression targets, we fit an OLS model as our parametric baseline, minimizing the sum of squared residuals. "
+        "To protect against multicollinearity (such as age vs. credit history length), we also trained a Ridge regressor. "
+        "This adds an L2 regularization penalty, shrinking coefficients to provide more stable estimates."
+    )
+    add_content_slide_text(prs, "Model Selection: OLS & Ridge Regressors", bullets, notes)
+
+    # 24. Slide 24: Model Selection: Random Forest Regressor
+    bullets = [
+        ("Random Forest Regressor", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Non-linear tree ensemble regressor. Averages predictions from multiple decision trees to model continuous variables without linear assumptions.", 13, False, TEXT_DARK, 0),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - `n_estimators = 300`: 300 regression trees.", 12, False, TEXT_DARK, 1),
+        ("   - `min_samples_leaf = 10`: Minimum samples required in a leaf node.", 12, False, TEXT_DARK, 1),
+        ("   - `n_jobs = -1`: Multi-threaded CPU execution.", 12, False, TEXT_DARK, 1),
+        ("• Regularization Benefit: Setting `min_samples_leaf=10` prevents trees from splitting to fit individual observations, smoothing predictions and reducing overfitting.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "Random Forest Regressor averages predictions from 300 trees. "
+        "We regularized the model by requiring at least 10 samples per leaf node, "
+        "preventing trees from memorizing individual observations. This smooths out predictions "
+        "and handles potential non-linear structures in lending amounts and interest rates."
+    )
+    add_content_slide_text(prs, "Model Selection: Random Forest Regressor", bullets, notes)
+
+    # 25. Slide 25: Model Selection: Boosting Regressors
+    bullets = [
+        ("Gradient Boosting Regressor", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Sequential boosting tree regressor. Learns tree structures to minimize residuals squared errors step-by-step.", 13, False, TEXT_DARK, 0),
+        ("• Targets: Optimized for continuous loan amount and percent of income regressions.", 13, False, TEXT_DARK, 1),
+        ("CatBoost Regressor", 16, True, BLUE_RGB, 0),
+        ("• Rationale: Categorical-focused boosting framework. Optimized specifically for interest rate regressions.", 13, False, TEXT_DARK, 0),
+        ("• Parameter Configuration:", 13, False, TEXT_DARK, 0),
+        ("   - `iterations = 300`: Sequential steps.", 12, False, TEXT_DARK, 1),
+        ("   - `learning_rate = 0.05`: Slowly adapts predictions.", 12, False, TEXT_DARK, 1),
+        ("   - `depth = 6`: Controls tree complexity.", 12, False, TEXT_DARK, 1),
+        ("   - `loss_function = 'RMSE'`: Minimizes root mean squared error.", 12, False, TEXT_DARK, 1),
+        ("• Rationale: In our validation phase, Gradient Boosting performed best for loan amounts, while CatBoost excelled for interest rate modeling.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "We trained Gradient Boosting and CatBoost regressors. "
+        "Gradient Boosting was selected for predicting loan amount and percent of income. "
+        "CatBoost, using root mean squared error loss, was selected for interest rate prediction. "
+        "This split approach uses the best saved regressor for each specific continuous target."
+    )
+    add_content_slide_text(prs, "Model Selection: Boosting Regressors", bullets, notes)
+
+    # 26. Slide 26: Model Selection: Bayesian Network Structure
+    bullets = [
+        ("Bayesian Network Structure Learning", 16, True, BLUE_RGB, 0),
+        ("We use a white-box Bayesian approach on grouped variables to learn dependencies:", 13, False, TEXT_DARK, 0),
+        ("• HillClimbSearch: Iteratively evaluates potential Directed Acyclic Graph (DAG) structures, searching for optimal causal fits.", 13, False, TEXT_DARK, 1),
+        ("• BIC Scoring Method: Balances graph fit with complexity, penalizing dense graphs:", 13, False, TEXT_DARK, 1),
+        ("   BIC = ln(n)*k - 2*ln(L)", 14, True, TEXT_DARK, 2),
+        ("• Complexity Bounds: Set `max_indegree=3` to limit each node to at most three parent nodes, keeping the graph readable.", 13, False, TEXT_DARK, 1),
+        ("• Fit & Inference: Fit Conditional Probability Tables (CPDs) using `MaximumLikelihoodEstimator` and run query inference with `VariableElimination`.", 13, False, TEXT_DARK, 1),
+    ]
+    notes = (
+        "To provide auditable probability reasoning, we trained a Bayesian Network. "
+        "We used HillClimbSearch to explore graph structures, scoring them using the Bayesian Information Criterion. "
+        "To maintain simplicity, we capped the maximum parent nodes at three. "
+        "We fit conditional probability tables using Maximum Likelihood estimation, enabling exact inference."
+    )
+    add_content_slide_text(prs, "Model Selection: Bayesian Network Structure", bullets, notes)
+
+    # 27. Slide 27: Section Header: Model Analysis & Diagnostics
+    notes = (
+        "We now enter our third major section: Model Analysis & Diagnostics. "
+        "We'll review classifier performance (ROC/PR), calibration (Brier), threshold tuning, segment grade errors, "
+        "classification SHAP feature attributions, Bayesian DAG results, regression performance, residual diagnostics, "
+        "interest rate grades, and regression SHAP attributions. "
+        "This section covers 10 detailed slides."
+    )
+    add_section_header_slide(prs, "Section 3:\nModel Analysis & Diagnostics", notes)
+
+    # 28. Slide 28: Model Analysis: Classifier ROC & PR Curves
+    bullets = [
+        ("Classification Performance", 16, True, BLUE_RGB, 0),
         ("• CatBoost Outperformed All Competitors:", 13, False, TEXT_DARK, 0),
         ("   - ROC-AUC = 0.9429: Excellent class discriminative ability.", 12, False, TEXT_DARK, 1),
         ("   - PR-AUC = 0.9003: High accuracy on the default class.", 12, False, TEXT_DARK, 1),
-        ("• Metrics at Standard Cutoff (0.50):", 13, False, TEXT_DARK, 0),
-        ("   - Accuracy = 93.78%", 12, False, TEXT_DARK, 1),
-        ("   - Precision = 99.08%: Denies almost no creditworthy borrowers.", 12, False, TEXT_DARK, 1),
-        ("   - Recall = 72.95%: Identifies nearly 3 in 4 actual defaults.", 12, False, TEXT_DARK, 1),
-        ("   - F1-Score = 0.8403", 12, False, TEXT_DARK, 1),
-        ("• Conclusion: CatBoost selected as final classifier.", 13, False, TEXT_DARK, 0),
+        ("• Curve Analysis (Figure 28):", 13, False, TEXT_DARK, 0),
+        ("   - ROC curve rises steeply, showing clean class separation.", 12, False, TEXT_DARK, 1),
+        ("   - PR curve stays near 1.0 precision up to 70% recall, meaning we catch 70% of defaults with virtually zero false alarms.", 12, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_roc_pr.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 18: CatBoost ROC curve (AUC=0.9429) and PR curve (AUC=0.9003) on the hold-out test set.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "The CatBoost classifier achieved the highest overall performance on the test set. "
         "It reached a ROC-AUC of 0.9429, showing strong class separation. "
-        "In Figure 18, the PR-AUC of 0.9003 shows that the model maintains near-perfect precision for recall values up to 70%. "
+        "In Figure 28, the PR-AUC of 0.9003 shows that the model maintains near-perfect precision for recall values up to 70%. "
         "This allows us to identify a large share of default risks with very few false alarms."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Classifier ROC & PR Curves", bullets, "model_roc_pr.png",
+                                       "Figure 28: CatBoost ROC curve (AUC=0.9429) and PR curve (AUC=0.9003) on hold-out data.", notes)
 
-    # Slide 19: Model Analysis: Probability Calibration & Brier Score
-    s = add_content_slide("Model Analysis: Probability Calibration & Brier Score")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 29. Slide 29: Model Analysis: Classifier Calibration & Brier
     bullets = [
         ("Probability Calibration", 16, True, BLUE_RGB, 0),
         ("A credit risk model must return probabilities that align with actual default frequencies:", 13, False, TEXT_DARK, 0),
         ("• Brier Score: Measures prediction error (Brier, 1950):", 13, False, TEXT_DARK, 1),
         ("   Brier = (1/N) * sum((p_i - y_i)^2)", 14, True, TEXT_DARK, 1),
         ("• Brier = 0.0532 (< 0.15 indicates excellent probability calibration).", 13, False, TEXT_DARK, 1),
-        ("Reliability Plot (Figure 19)", 16, True, BLUE_RGB, 0),
+        ("Reliability Plot (Figure 29)", 16, True, BLUE_RGB, 0),
         ("• Low risk (0.0-0.30): Model is slightly under-confident (actual defaults slightly higher than predicted).", 13, False, TEXT_DARK, 1),
         ("• Mid risk (0.30-0.60): Shows typical tree-based dispersion.", 13, False, TEXT_DARK, 1),
         ("• High risk (0.60-1.0): Follows ideal diagonal line, capturing high-risk profiles.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_calibration.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 19: Calibration curve mapping predicted default probabilities against observed default rates.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "In risk management, raw probabilities are used directly for interest rate pricing. "
         "Therefore, our model must be well-calibrated. "
         "The Brier Score of 0.0532 is far below the 0.15 threshold, confirming excellent calibration. "
-        "Figure 19 shows that the model follows the diagonal line closely, making it highly reliable for risk-based pricing."
+        "Figure 29 shows that the model follows the diagonal line closely, making it highly reliable for risk-based pricing."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Classifier Calibration & Brier", bullets, "model_calibration.png",
+                                       "Figure 29: Calibration curve mapping predicted probabilities against observed default rates.", notes)
 
-    # Slide 20: Model Analysis: Confusion Matrix & Threshold Tuning
-    s = add_content_slide("Model Analysis: Confusion Matrix & Threshold Tuning")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 30. Slide 30: Model Analysis: Decision Threshold Tuning
     bullets = [
         ("Tuning the Decision Boundary", 16, True, BLUE_RGB, 0),
         ("Lenders can adjust the classification threshold to reflect asymmetric costs:", 13, False, TEXT_DARK, 0),
@@ -892,21 +1032,16 @@ def create_presentation():
         ("• 0.50 (Balanced): Standard cutoff. Yields optimal balanced F1-score of 0.8403, and limits false positives to only 9. Recommended for standard portfolios.", 12, False, TEXT_DARK, 1),
         ("• 0.75 (Conservative): Catches only 70.31% of defaults, but achieves near-perfect precision (99.89%). Good when funding is highly constrained.", 12, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_confusion_matrices.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 20: Heatmaps showing confusion matrices at 0.24 and 0.50 thresholds on holdout data.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We evaluated three decision thresholds to balance precision and recall. "
         "A threshold of 0.50 provides the highest F1-score of 0.8403 and limits false alarms to 9. "
         "If a lender wants to catch more defaults, a threshold of 0.24 increases recall to 78.45% in exchange for 157 false alarms. "
-        "Figure 20 shows the confusion matrix heatmaps for these two choices."
+        "Figure 30 shows the confusion matrix heatmaps for these two choices."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Decision Threshold Tuning", bullets, "model_confusion_matrices.png",
+                                       "Figure 30: Heatmaps showing confusion matrices at 0.24 and 0.50 thresholds on holdout data.", notes)
 
-    # Slide 21: Model Analysis: Error Analysis by Credit Grade
-    s = add_content_slide("Model Analysis: Error Analysis by Credit Grade")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 31. Slide 31: Model Analysis: Segment Performance by Grade
     bullets = [
         ("Segment Performance Audits", 16, True, BLUE_RGB, 0),
         ("We evaluate model accuracy separately across credit grades A-G to find weak segments:", 13, False, TEXT_DARK, 0),
@@ -915,49 +1050,39 @@ def create_presentation():
         ("• Grades E-G (High Risk): Accuracy is high (91.67% to 100.00%) because defaults dominate these categories.", 12, False, TEXT_DARK, 1),
         ("• Limitations: Sample size is highly skewed. Grades F and G have very few observations (16 and 12), so their accuracy metrics are less stable.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_grade_performance.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 21: Accuracy compared with actual default rate per credit grade segment.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We performed segment-level error analysis to ensure fairness and robustness. "
         "Model accuracy remains high across all grades, peaking at 96.41% for Grade A. "
         "Grade C represents the most challenging segment at 89.70% accuracy due to higher overlap. "
-        "Figure 21 shows the accuracy and default rates for each grade."
+        "Figure 31 shows the accuracy and default rates for each grade."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Segment Performance by Grade", bullets, "model_grade_performance.png",
+                                       "Figure 31: Accuracy compared with actual default rate per credit grade segment.", notes)
 
-    # Slide 22: Model Analysis: Classification SHAP Feature Attribution
-    s = add_content_slide("Model Analysis: Classification SHAP")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 32. Slide 32: Model Analysis: Classification SHAP
     bullets = [
         ("SHAP Game-Theoretic Attributions", 16, True, BLUE_RGB, 0),
-        ("SHAP values (Lundberg & Lee, 2017) decompose predictions into individual feature contributions, explaining decision paths:", 13, False, TEXT_DARK, 0),
+        ("SHAP values decompose predictions into individual feature contributions, explaining decision paths:", 13, False, TEXT_DARK, 0),
         ("• Income-to-Loan Ratio (Rank 1): Strongest risk dampener. Borrowers earning much more than they borrow are low risk.", 12, False, TEXT_DARK, 1),
         ("• Rent Status (Rank 2): Strongest risk driver. Renters show lower asset stability.", 12, False, TEXT_DARK, 1),
         ("• Loan Percent of Income (Rank 3): High debt-to-income ratios increase default risk.", 12, False, TEXT_DARK, 1),
         ("• Home Ownership (Rank 4): Owning home indicates financial stability and reduces risk.", 12, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'shap_classification.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 22: Mean absolute SHAP values for top 10 features influencing default classification.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We used SHAP values to explain the CatBoost model. "
         "The income-to-loan ratio is the most important predictor, where a higher ratio reduces default risk. "
         "Renting is the second most important feature, acting as a positive driver of risk. "
-        "Figure 22 displays the top 10 features sorted by their average absolute impact."
+        "Figure 32 displays the top 10 features sorted by their average absolute impact."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Classification SHAP", bullets, "shap_classification.png",
+                                       "Figure 32: Mean absolute SHAP values for top 10 features influencing default classification.", notes)
 
-    # Slide 23: Model Analysis: Bayesian Network White-Box Inference
-    s = add_content_slide("Model Analysis: Bayesian Network Reasoning")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 33. Slide 33: Model Analysis: Bayesian Causal Inference
     bullets = [
         ("White-Box Probability DAG Structure", 16, True, BLUE_RGB, 0),
         ("We trained a Bayesian Network (Heckerman, 1997) using pgmpy's `HillClimbSearch` and the BIC scoring method to capture causal flows:", 13, False, TEXT_DARK, 0),
         ("• Graph Constraints: Maximum in-degree of 3 was enforced to ensure visual and logical simplicity.", 13, False, TEXT_DARK, 1),
-        ("• Learned Causal Links (Figure 23):", 13, False, TEXT_DARK, 1),
+        ("• Learned Causal Links (Figure 33):", 13, False, TEXT_DARK, 1),
         ("   - Home Ownership -> Default Status", 12, False, TEXT_DARK, 2),
         ("   - Credit Grade -> Default Status", 12, False, TEXT_DARK, 2),
         ("   - Loan Burden % -> Default Status", 12, False, TEXT_DARK, 2),
@@ -965,21 +1090,16 @@ def create_presentation():
         ("• Unlike black-box ML models, Bayesian networks provide exact conditional probabilities that regulators can audit.", 13, False, TEXT_DARK, 1),
         ("• Used for probability inference via Variable Elimination when specific evidence is provided.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_bayesian_dag.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 23: Directed Acyclic Graph (DAG) showing causal dependencies learned from credit data.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We built a Bayesian Network to add an auditable reasoning layer. "
         "Using HillClimbSearch and BIC, the model identified three direct parents of default status: "
         "home ownership, credit grade, and loan burden. "
-        "As shown in Figure 23, this creates a clear, transparent structure that avoids black-box complexity."
+        "As shown in Figure 33, this creates a clear, transparent structure that avoids black-box complexity."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Bayesian Causal Inference", bullets, "model_bayesian_dag.png",
+                                       "Figure 33: Directed Acyclic Graph (DAG) showing causal dependencies learned from credit data.", notes)
 
-    # Slide 24: Model Analysis: Regression Performance across Targets
-    s = add_content_slide("Model Analysis: Regression Performance")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 34. Slide 34: Model Analysis: Regression Performance
     bullets = [
         ("Lending Regression Benchmarks", 16, True, BLUE_RGB, 0),
         ("We evaluate regression models on non-defaulting loans across three targets:", 13, False, TEXT_DARK, 0),
@@ -988,30 +1108,22 @@ def create_presentation():
         ("3. Interest Rate (R2 = 0.222, MAE = 2.06%): Best performer. Captures credit grade and prior default relationships.", 12, False, TEXT_DARK, 1),
         ("Conclusion: Regression targets are heavily driven by lender policy and market rates not present in this dataset.", 13, False, TEXT_DARK, 0),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(4, 6, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    widths = [1.2, 0.7, 1.0, 1.0, 1.0, 1.1]
-    for col_idx, width in enumerate(widths):
-        table.columns[col_idx].width = Inches(width)
     headers = ["Target", "R2", "MAE", "RMSE", "MAPE", "Assessment"]
     data = [
         ["Loan Amount", "0.1978", "$3,869", "$5,048", "73.7%", "Moderate"],
         ["Loan % Income", "0.0918", "0.065", "0.082", "73.9%", "Weak"],
         ["Interest Rate", "0.2223", "2.06%", "2.53%", "22.5%", "Moderate (Best)"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We evaluated regression models for loan amount, loan-to-income percentage, and interest rate. "
         "The interest rate model performed best, achieving an R2 of 0.222. "
         "The loan-to-income ratio is the weakest model at 0.092. "
         "These moderate scores suggest that lending amounts are driven by lender policies and market factors not in our data. "
         "The OLS interest rate model is explored next."
     )
+    add_content_slide_split_text_table(prs, "Model Analysis: Regression Performance", bullets, headers, data, [1.2, 0.7, 1.0, 1.0, 1.0, 1.1], notes)
 
-    # Slide 25: Model Analysis: Interest Rate OLS Diagnostics
-    s = add_content_slide("Model Analysis: Interest Rate OLS Diagnostics")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(4.5), Inches(5.4)).text_frame
+    # 35. Slide 35: Model Analysis: Interest Rate OLS Diagnostics
     bullets = [
         ("OLS Diagnostic Plots Analysis", 16, True, BLUE_RGB, 0),
         ("• Residuals vs. Fitted (Top Left): Residuals scatter randomly around zero. A wider spread at higher rates indicates mild heteroscedasticity.", 12, False, TEXT_DARK, 1),
@@ -1020,22 +1132,17 @@ def create_presentation():
         ("• Residual Histogram (Bottom Right): Symmetric and centered at zero (mean = -0.0003), confirming that estimates are unbiased.", 12, False, TEXT_DARK, 1),
         ("Summary: Satisfies basic regression assumptions, providing unbiased interest rate estimates.", 13, False, TEXT_DARK, 0),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'model_regression_diagnostics.png', Inches(5.2), Inches(1.3), Inches(7.5), Inches(5.5))
-    cap_tf = s.shapes.add_textbox(Inches(5.2), Inches(6.8), Inches(7.5), Inches(0.6)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 25: Four-panel OLS residual diagnostics for the interest rate regression model.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We performed residual diagnostics on our interest rate OLS model. "
         "The residuals vs. fitted plot shows a random distribution around the zero line with mild heteroscedasticity. "
         "The Q-Q plot confirms that residuals follow a normal distribution. "
         "The histogram, centered at -0.0003, shows that the model is unbiased. "
         "This validates our regression assumptions."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Interest Rate OLS Diagnostics", bullets, "model_regression_diagnostics.png",
+                                       "Figure 35: Four-panel OLS residual diagnostics for the interest rate regression model.", notes)
 
-    # Slide 26: Model Analysis: Interest Rate MAE by Loan Grade
-    s = add_content_slide("Model Analysis: Interest Rate MAE by Loan Grade")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 36. Slide 36: Model Analysis: Interest Rate MAE by Grade
     bullets = [
         ("Interest Rate Prediction by Credit Grade", 16, True, BLUE_RGB, 0),
         ("We evaluate interest rate MAE separately for each credit grade segment:", 13, False, TEXT_DARK, 0),
@@ -1044,12 +1151,6 @@ def create_presentation():
         ("• Grades E & F: Showed the largest errors (MAE of 5.44 and 5.71 percentage points).", 12, False, TEXT_DARK, 1),
         ("• Risk Gradient Pattern: Prediction error increases for higher-risk credit grades due to limited training samples and greater interest rate variance in these categories.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(7, 5, Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.5))
-    table = t_shape.table
-    widths = [1.2, 1.2, 1.2, 1.2, 1.2]
-    for col_idx, width in enumerate(widths):
-        table.columns[col_idx].width = Inches(width)
     headers = ["Grade", "Mean Rate", "MAE (p.p.)", "Std Error", "Samples"]
     data = [
         ["A", "7.63%", "2.457", "1.141", "1,809"],
@@ -1059,17 +1160,15 @@ def create_presentation():
         ["E", "16.62%", "5.440", "2.448", "58"],
         ["F", "17.99%", "5.708", "2.670", "16"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We evaluated interest rate errors by loan grade. "
         "Grade B achieved the lowest MAE of 1.17 percentage points, benefiting from its large sample size. "
         "Grades E and F show the largest errors, exceeding 5.4 percentage points. "
         "This risk gradient indicates that prediction error increases for higher-risk borrowers due to higher volatility and fewer samples."
     )
+    add_content_slide_split_text_table(prs, "Model Analysis: Interest Rate MAE by Grade", bullets, headers, data, [1.2, 1.2, 1.2, 1.2, 1.2], notes)
 
-    # Slide 27: Model Analysis: Regression SHAP Feature Attribution
-    s = add_content_slide("Model Analysis: Regression SHAP")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 37. Slide 37: Model Analysis: Regression SHAP
     bullets = [
         ("Interest Rate Regressor Explanation", 16, True, BLUE_RGB, 0),
         ("SHAP feature attribution identifies the main drivers of the predicted interest rate:", 13, False, TEXT_DARK, 0),
@@ -1078,21 +1177,24 @@ def create_presentation():
         ("• Rent Status (Rank 4): Renting increases risk and pushes interest rates higher.", 12, False, TEXT_DARK, 1),
         ("• Loan Intent: Education and Medical loans reduce interest rates, while Debt Consolidation increases them.", 12, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.shapes.add_picture(plot_dir + 'shap_regression.png', Inches(6.8), Inches(1.5), Inches(6.0), Inches(4.3))
-    cap_tf = s.shapes.add_textbox(Inches(6.8), Inches(5.9), Inches(6.0), Inches(0.8)).text_frame
-    format_text_box(cap_tf)
-    add_paragraph(cap_tf, "Figure 27: Mean absolute SHAP values for top 10 features influencing interest rate predictions.", size=10, bold=True, color=(100, 100, 100))
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We applied SHAP values to explain our interest rate regression. "
         "The strongest feature pushing rates higher is the presence of a prior default. "
         "Mortgage ownership acts as the strongest rate dampener. "
-        "Figure 27 displays the top 10 features sorted by their impact on interest rates."
+        "Figure 37 displays the top 10 features sorted by their impact on interest rates."
     )
+    add_content_slide_split_text_image(prs, "Model Analysis: Regression SHAP", bullets, "shap_regression.png",
+                                       "Figure 37: Mean absolute SHAP values for top 10 features influencing interest rate predictions.", notes)
 
-    # Slide 28: Model Analysis: Operational Inference on Example Applicant
-    s = add_content_slide("Model Analysis: Example Applicant")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(6.0), Inches(5.4)).text_frame
+    # 38. Slide 38: Section Header: Conclusion & References
+    notes = (
+        "We now enter our final section: Conclusion and References. "
+        "We'll review operational inference on a custom applicant, summarize final findings, limits, and recommendations, "
+        "and present our formal academic references."
+    )
+    add_section_header_slide(prs, "Section 4:\nConclusion & References", notes)
+
+    # 39. Slide 39: Model Operations: Example Applicant
     bullets = [
         ("Model Inference on Sample Applicant", 16, True, BLUE_RGB, 0),
         ("We run our saved pipelines on an example applicant to test operations:", 13, False, TEXT_DARK, 0),
@@ -1104,31 +1206,22 @@ def create_presentation():
         ("   - Conservative Recommended Loan = $8,943.68 (the lower of the two values).", 12, False, TEXT_DARK, 1),
         ("   - Estimated Interest Rate = 10.13%", 12, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    t_shape = s.shapes.add_table(4, 4, Inches(6.8), Inches(1.8), Inches(6.0), Inches(3.0))
-    table = t_shape.table
-    table.columns[0].width = Inches(1.8)
-    table.columns[1].width = Inches(1.2)
-    table.columns[2].width = Inches(1.2)
-    table.columns[3].width = Inches(1.8)
     headers = ["Model", "Prob / Value", "Decision", "Interpretation"]
     data = [
         ["CatBoost ML", "98.60%", "Default", "Risk exceeds cutoff (0.50)"],
         ["Bayesian Net", "85.36%", "Default", "Agrees with ML output"],
         ["Loan Amount", "$8,943.68", "Review", "Conservative rate limit"]
     ]
-    fill_table(table, headers, data)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "We ran our saved pipelines on an example applicant. "
         "CatBoost predicted a 98.60% default probability, while the Bayesian Network estimated 85.36%. "
         "Both models agree on a default risk label, suggesting a reject decision. "
         "The regression model recommended a conservative loan limit of $8,943.68. "
         "This showcases our pipeline's deployment readiness."
     )
+    add_content_slide_split_text_table(prs, "Model Operations: Example Applicant", bullets, headers, data, [1.8, 1.2, 1.2, 1.8], notes)
 
-    # Slide 29: Conclusion, Limitations, & Recommendations
-    s = add_content_slide("Conclusion, Limitations & Recommendations")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 40. Slide 40: Conclusion, Limitations & Recommendations
     bullets = [
         ("Key Findings", 16, True, BLUE_RGB, 0),
         ("• CatBoost classifier is production-ready, achieving a ROC-AUC of 0.9429 and precision of 99.08% at a 0.50 threshold.", 13, False, TEXT_DARK, 1),
@@ -1141,18 +1234,16 @@ def create_presentation():
         ("• Operational Threshold: Deploy at a 0.50 threshold (F1 = 0.8403) for standard portfolios. Use 0.24 (recall = 78.45%) for high-risk portfolios.", 13, False, TEXT_DARK, 1),
         ("• Feature engineering: Add credit score bins and macroeconomic variables to improve interest rate predictions.", 13, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "In conclusion, our CatBoost default classifier is production-ready. "
         "Our OLS interest rate regression is unbiased but moderate in strength. "
         "We recommend deploying the classifier at 0.50 threshold for balanced portfolios, and 0.24 when capital safety is prioritized. "
         "Future improvements should collect external macroeconomic indicators and FICO scores. "
         "Thank you. We are open to questions."
     )
+    add_content_slide_text(prs, "Conclusion, Limitations & Recommendations", bullets, notes)
 
-    # Slide 30: Reference Papers
-    s = add_content_slide("Reference Papers")
-    tf = s.shapes.add_textbox(Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.4)).text_frame
+    # 41. Slide 41: Reference Papers
     bullets = [
         ("Key References & Citations", 16, True, BLUE_RGB, 0),
         ("• Altman, E. I. (1968). Financial ratios, discriminant analysis and the prediction of corporate bankruptcy. The Journal of Finance, 23(4), 589-609.", 11, False, TEXT_DARK, 1),
@@ -1167,13 +1258,13 @@ def create_presentation():
         ("• Shapiro, S. S., & Wilk, M. B. (1965). An analysis of variance test for normality. Biometrika, 52(3/4), 591-611.", 11, False, TEXT_DARK, 1),
         ("• Tukey, J. W. (1977). Exploratory data analysis. Addison-Wesley.", 11, False, TEXT_DARK, 1),
     ]
-    fill_textbox(tf, bullets)
-    s.notes_slide.notes_text_frame.text = (
+    notes = (
         "Here is the list of key academic references and citations that support our statistical methods and model selections. "
         "This includes foundational papers on Random Forest, Gradient Boosting, CatBoost, Brier Score calibration, Little and Rubin's missing data theory, "
         "and Tukey's exploratory data analysis. "
         "This completes our presentation. Thank you very much."
     )
+    add_content_slide_text(prs, "Reference Papers", bullets, notes)
 
     # Save presentation
     output_path = '/Users/diaeshantony/MS-AAI/Modules/Applied-statistics-and-AI/Team-Project/final_presentation.pptx'
