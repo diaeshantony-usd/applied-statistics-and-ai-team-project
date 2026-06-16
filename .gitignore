@@ -18,3 +18,7 @@ env/
 
 # CatBoost training artifacts
 catboost_info/
+
+# Presentation files (kept local)
+build_presentation.py
+final_presentation.pptx
