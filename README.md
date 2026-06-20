@@ -43,6 +43,7 @@ To keep the collaborative workspace organized and ensure seamless data sharing w
 5. **`04_Master_Pipeline/`**: Final integrated project notebook and master workflow.
    * **`Final_Credit_Risk_End_to_End_Analysis.ipynb`**: End-to-end notebook that combines data preparation, EDA, feature engineering, statistical testing, Bayesian reasoning, classification, regression, diagnostics, validation, model comparison, and applicant-level inference into one complete project workflow.
    * **`Final_Credit_Risk_End_to_End_Analysis.pdf`**: Compiled PDF version of the final end-to-end credit risk analysis notebook.
+6. **`Final project video presentation link`**: [Team 2 video presentation](https://drive.google.com/file/d/1lSfbDVei09L9-vQPM1SQoUjxnfE4Pts-/view?usp=drive_link).
 
 ---
 
